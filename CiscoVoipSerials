@@ -1,7 +1,7 @@
 #Define the path to the text file containing the IP addresses
 
-$ipFilePath = "C:\Users\1637548766C\Documents\Phones\IPs.txt"  # Replace with the correct file path
-$outputFilePath = "C:\Users\1637548766C\Documents\Phones\VoIP Phone Serials.txt"  # Replace with the desired output file path
+$ipFilePath = "C:\Users\User\IPs.txt"  # Replace with the correct file path
+$outputFilePath = "C:\Users\User\VoIP Phone Serials.csv"  # Replace with the desired output file path
 
 # Check if the output file already exists, and if so, delete it to create a fresh one
 if (Test-Path $outputFilePath) {
