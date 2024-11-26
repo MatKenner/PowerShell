@@ -1,0 +1,70 @@
+#Define the path to the text file containing the IP addresses
+
+$ipFilePath = "C:\Users\1637548766C\Documents\Phones\IPs.txt"  # Replace with the correct file path
+$outputFilePath = "C:\Users\1637548766C\Documents\Phones\VoIP Phone Serials.txt"  # Replace with the desired output file path
+
+# Check if the output file already exists, and if so, delete it to create a fresh one
+if (Test-Path $outputFilePath) {
+    Remove-Item $outputFilePath
+}
+
+# Read all the IP addresses from the text file
+$ipAddresses = Get-Content -Path $ipFilePath
+
+# Initialize an array to store results
+$results = @()
+
+# Loop through each IP address in the list
+foreach ($ipAddress in $ipAddresses) {
+    Write-Host "Querying IP: $ipAddress"
+
+    # Define the URL (assuming you have a way to query the serial number from the IP address)
+    $url = "$ipAddress/CGI/Java/Serviceability?adapter=device.statistics.device"  # Modify this URL based on your specific use case
+
+    try {
+        # Use curl with the -k flag to bypass SSL certificate validation and fetch the page content
+        $response = curl -k $url -o response.html
+
+        # Read the content of the response file
+        $htmlContent = Get-Content -Path "response.html"
+
+        # Search for the terms "Serial" and "Model" in the content
+        $serialMatches = $htmlContent | Select-String -Pattern "Serial number" -CaseSensitive:$false
+        $modelMatches = $htmlContent | Select-String -Pattern "Model" -CaseSensitive:$false
+
+        # Check if any matches are found for "Serial number"
+        if ($serialMatches) {
+            foreach ($match in $serialMatches) {
+                # Extract the serial number (modify the regex if necessary to clean up the output)
+                $serialNumber = $match.Line.Trim()
+
+                # Check if any matches are found for "Model"
+                if ($modelMatches) {
+                    foreach ($modelMatch in $modelMatches) {
+                        # Extract the model (modify the regex if necessary to clean up the output)
+                        $model = $modelMatch.Line.Trim()
+
+                        # Add the result to the array with commas before "Serial" and "Model"
+                        $results += "$ipAddress,Serial,$serialNumber,Model,$model"
+                        Write-Host "Found 'Serial' for IP: $ipAddress - Serial: $serialNumber, Model: $model"
+                    }
+                } else {
+                    # If "Model" is not found, still append the serial number
+                    $results += "$ipAddress,Serial,$serialNumber,Model,No Model Found"
+                    Write-Host "Found 'Serial' for IP: $ipAddress - Serial: $serialNumber, No Model Found"
+                }
+            }
+        } else {
+            Write-Host "No 'Serial' found for IP: $ipAddress"
+            $results += "$ipAddress,Serial,No Serial Found,Model,No Model Found"
+        }
+    } catch {
+        Write-Host "Error querying IP: $ipAddress - $_"
+        $results += "$ipAddress,Error querying IP,No Serial Found,Model,No Model Found"
+    }
+}
+
+# Write all results to the output file at once
+$results | Out-File -FilePath $outputFilePath -Force
+
+Write-Host "Process complete. Results saved to $outputFilePath."
